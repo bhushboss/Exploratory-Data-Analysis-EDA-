@@ -1,0 +1,151 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import warnings
+
+# Suppress warnings for a cleaner output (optional)
+warnings.filterwarnings('ignore')
+
+# --- Load and Inspect Data ---
+file_name = "Titanic-Dataset.csv"
+try:
+    df = pd.read_csv(file_name)
+
+    print("--- 1. Initial Data Inspection ---")
+    print("\nFirst 5 rows of the dataset:")
+    print(df.head().to_markdown(index=False, numalign="left", stralign="left"))
+
+    print("\nColumn information (Dtypes and Non-Null Counts):")
+    df.info()
+
+except FileNotFoundError:
+    print(f"Error: The file '{file_name}' was not found.")
+    exit()
+except Exception as e:
+    print(f"An error occurred loading the data: {e}")
+    exit()
+
+
+# --- 1. Generate Summary Statistics ---
+
+print("\n\n--- 2. Summary Statistics for Numerical Features ---")
+numerical_cols = ['Age', 'Fare', 'SibSp', 'Parch']
+print(df[numerical_cols].describe().to_markdown(numalign="left", stralign="left"))
+
+# --- 4. Identify Patterns/Anomalies (Missing Data) ---
+print("\n\n--- 3. Anomaly Check (Missing Value Percentages) ---")
+missing_data = df.isnull().sum() / len(df) * 100
+missing_df = pd.DataFrame({'Column': df.columns, 'MissingPercentage': missing_data})
+missing_df = missing_df[missing_df['MissingPercentage'] > 0].sort_values(by='MissingPercentage', ascending=False)
+print(missing_df.to_markdown(index=False, numalign="left", stralign="left"))
+
+
+# --- 2. Create Histograms and Boxplots ---
+
+print("\n\n--- 4. Generating Visualizations (Histograms, Boxplots) ---")
+
+# Histograms for Age and Fare
+try:
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    sns.histplot(df['Age'].dropna(), kde=True, bins=30)
+    plt.title('Age Distribution')
+    plt.xlabel('Age')
+    plt.ylabel('Frequency')
+
+    plt.subplot(1, 2, 2)
+    # Using log scale for 'Fare' due to its high skewness
+    sns.histplot(df[df['Fare'] > 0]['Fare'], kde=True, bins=30, log_scale=True)
+    plt.title('Fare Distribution (Log Scale)')
+    plt.xlabel('Fare')
+    plt.ylabel('Frequency')
+    plt.tight_layout()
+    plt.savefig('histograms_age_fare.png')
+    print("Generated 'histograms_age_fare.png'")
+
+    # Boxplots for Age and Fare
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    sns.boxplot(x=df['Age'])
+    plt.title('Age Boxplot')
+    plt.xlabel('Age')
+
+    plt.subplot(1, 2, 2)
+    sns.boxplot(x=df['Fare'])
+    plt.title('Fare Boxplot (Note: High outliers)')
+    plt.xlabel('Fare')
+    plt.tight_layout()
+    plt.savefig('boxplots_age_fare.png')
+    print("Generated 'boxplots_age_fare.png'")
+
+except Exception as e:
+    print(f"Error generating histograms/boxplots: {e}")
+
+
+# --- 3. Use Pairplot/Correlation Matrix ---
+
+print("\n\n--- 5. Generating Visualizations (Correlation & Pairplot) ---")
+
+# Correlation Matrix
+try:
+    plt.figure(figsize=(10, 7))
+    # Select columns for correlation
+    corr_cols = ['Survived', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare']
+    correlation_matrix = df[corr_cols].corr()
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=.5)
+    plt.title('Correlation Matrix of Numerical Features')
+    plt.savefig('correlation_matrix.png')
+    print("Generated 'correlation_matrix.png'")
+except Exception as e:
+    print(f"Error generating correlation matrix: {e}")
+
+
+# Pairplot
+try:
+    # We use a subset of columns for the pairplot to keep it readable
+    # 'hue' by 'Survived' to see relationships based on survival
+    # We dropna() for the pairplot columns to avoid errors with missing Age
+    pairplot_cols = ['Survived', 'Pclass', 'Age', 'Fare', 'Sex']
+    sns.pairplot(df[pairplot_cols].dropna(), hue='Survived', palette={0: 'red', 1: 'green'}, markers=["o", "s"])
+    plt.savefig('pairplot_survived.png')
+    print("Generated 'pairplot_survived.png'")
+except Exception as e:
+    print(f"Could not generate pairplot: {e}")
+
+
+# --- Additional Plots for Categorical Features ---
+
+print("\n\n--- 6. Generating Visualizations (Categorical Counts) ---")
+
+try:
+    plt.figure(figsize=(18, 6))
+
+    # Survived
+    plt.subplot(1, 4, 1)
+    ax = sns.countplot(x='Survived', data=df, palette={0: 'red', 1: 'green'})
+    plt.title('Survival Count')
+    ax.set_xticklabels(['Did not Survive (0)', 'Survived (1)'])
+
+    # Pclass
+    plt.subplot(1, 4, 2)
+    sns.countplot(x='Pclass', data=df, palette='viridis')
+    plt.title('Passenger Class Count')
+
+    # Sex
+    plt.subplot(1, 4, 3)
+    sns.countplot(x='Sex', data=df, palette='pastel')
+    plt.title('Gender Count')
+
+    # Embarked
+    plt.subplot(1, 4, 4)
+    sns.countplot(x='Embarked', data=df, palette='plasma')
+    plt.title('Port of Embarkation Count')
+
+    plt.tight_layout()
+    plt.savefig('categorical_count_plots.png')
+    print("Generated 'categorical_count_plots.png'")
+    print("\n--- EDA Script Finished ---")
+
+except Exception as e:
+    print(f"Error generating count plots: {e}")
